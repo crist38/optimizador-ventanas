@@ -58,6 +58,46 @@ const ACCESSORY_PRICES: Record<string, number> = {
   zocalo: 14000,
 };
 
+// ===== LÍNEAS DE PVC =====
+const LINE_NAMES: Record<string, string> = {
+  'pvc_58cd': 'PVC 58 CD',
+  'pvc_70cd': 'PVC 70 CD',
+  'pvc_58dj': 'PVC 58 DJ',
+  'pvc_50dj': 'PVC 50 DJ',
+  'pvc_pd10': 'PVC PD-10',
+};
+
+const LINE_PRICES: Record<string, number> = {
+  'pvc_58cd': 0, // Línea estándar, sin costo adicional
+  'pvc_70cd': 15000, // Línea premium
+  'pvc_58dj': 10000, // Línea abatible
+  'pvc_50dj': 8000, // Línea abatible económica
+  'pvc_pd10': 12000, // Línea corredera con fijos
+};
+
+const LINE_SPECS: Record<string, { validThicknesses: number[]; allowTermopanel: boolean }> = {
+  'pvc_58cd': { validThicknesses: [4, 6, 7, 9, 10, 11, 12, 14, 15, 18, 19], allowTermopanel: true },
+  'pvc_70cd': { validThicknesses: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24, 25], allowTermopanel: true },
+  'pvc_58dj': { validThicknesses: [6, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 30, 31, 32], allowTermopanel: true },
+  'pvc_50dj': { validThicknesses: [6, 7, 8, 11, 12, 13, 14, 15, 18, 19, 20, 21, 22, 23, 26, 27, 28], allowTermopanel: true },
+  'pvc_pd10': { validThicknesses: [6, 18, 25], allowTermopanel: true },
+};
+
+const LINE_MAX_DIMENSIONS: Record<string, { maxWidth: number; maxHeight: number }> = {
+  'pvc_58cd': { maxWidth: 4800, maxHeight: 2300 },
+  'pvc_70cd': { maxWidth: 3500, maxHeight: 2500 }, // Máximo para puerta, más restrictivo para ventana
+  'pvc_58dj': { maxWidth: 3000, maxHeight: 3000 },
+  'pvc_50dj': { maxWidth: 2000, maxHeight: 3200 }, // Máximo para fijo, 1100x2200 para abatir
+  'pvc_pd10': { maxWidth: 3200, maxHeight: 2400 },
+};
+
+// Helper to filter PVC compatible glass
+function isGlassCompatible(code: string) {
+  // PVC windows do not use thin Acrylics meant for Shower Doors
+  if (code && code.startsWith('acr.')) return false;
+  return true;
+}
+
 
 function WindowPreview({
   width,
@@ -416,6 +456,31 @@ function WindowPreview({
         <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke={lineColor} strokeWidth="1" />
         <line x1={lx1 - tickSize} y1={ly1 - tickSize} x2={lx1 + tickSize} y2={ly1 + tickSize} stroke={lineColor} strokeWidth={2.5} />
         <line x1={lx2 - tickSize} y1={ly2 - tickSize} x2={lx2 + tickSize} y2={ly2 + tickSize} stroke={lineColor} strokeWidth={2.5} />
+
+        {/* Shadow for depth */}
+        <rect
+          x={mx + (vertical ? -textOffset : 0) - (text.length * textFontSize * 0.35) + 1}
+          y={my + (vertical ? 0 : textOffset / 2 + 2) - textFontSize * 0.65 + 1}
+          width={text.length * textFontSize * 0.7}
+          height={textFontSize * 1.4}
+          fill="#00000010"
+          rx="6"
+          transform={vertical ? `rotate(-90 ${mx - textOffset} ${my})` : undefined}
+        />
+
+        {/* Background box for text */}
+        <rect
+          x={mx + (vertical ? -textOffset : 0) - (text.length * textFontSize * 0.35)}
+          y={my + (vertical ? 0 : textOffset / 2 + 2) - textFontSize * 0.65}
+          width={text.length * textFontSize * 0.7}
+          height={textFontSize * 1.4}
+          fill="white"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          rx="6"
+          transform={vertical ? `rotate(-90 ${mx - textOffset} ${my})` : undefined}
+        />
+
         <text
           x={mx + (vertical ? -textOffset : 0)}
           y={my + (vertical ? 0 : textOffset / 2 + 2)}
@@ -425,7 +490,7 @@ function WindowPreview({
           fontWeight="bold"
           fill="#1e293b"
           transform={vertical ? `rotate(-90 ${mx - textOffset} ${my})` : undefined}
-          style={{ cursor: onUpdate ? 'pointer' : 'default', userSelect: 'none' }}
+          style={{ cursor: onUpdate ? 'pointer' : 'default', userSelect: 'none', pointerEvents: onUpdate ? 'auto' : 'none' }}
           onClick={(e) => {
             e.stopPropagation();
             if (onUpdate) {
@@ -570,11 +635,10 @@ function WindowPreview({
   };
 
 
-  const PADDING_BOTTOM = 100 * scale;
 
   return (
     <svg
-      viewBox={`${viewX} ${viewY} ${viewW} ${height + PADDING_BOTTOM}`}
+      viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
       xmlns="http://www.w3.org/2000/svg"
       className="w-full h-full rounded-sm bg-white"
       style={{ maxWidth: '100%', maxHeight: '100%', boxShadow: showShadow ? '0 12px 30px rgba(2,6,23,0.12)' : undefined }}
@@ -721,6 +785,7 @@ interface WindowConfig {
   sashTypes?: string[];
   sashPalillosH?: number[];
   sashPalillosV?: number[];
+  line?: string; // Línea de PVC (pvc_58cd, pvc_70cd)
 }
 
 function ConfiguradorVentanaContent() {
@@ -937,6 +1002,12 @@ function ConfiguradorVentanaContent() {
     const cKey = colorMapping[win.material] || win.material;
     const colorPrice = pvcConfig?.colores?.[cKey]?.price ?? (COLOR_PRICES[win.material] || 0);
     price += colorPrice;
+
+    // Line Price
+    if (win.line) {
+      const linePrice = pvcConfig?.lineas?.[win.line]?.price ?? (LINE_PRICES[win.line] || 0);
+      price += linePrice;
+    }
 
     const area = (win.width * win.height) / 1000000;
 
@@ -1840,6 +1911,61 @@ function ConfiguradorVentanaContent() {
                   </select>
                 </div>
 
+                {/* Selector de Línea PVC */}
+                {(activeWindow.type === 'corredera' || activeWindow.type === 'abatible' || activeWindow.type === 'open_right' || activeWindow.type === 'open_left' || activeWindow.type === 'proyectante' || activeWindow.type === 'tilt_turn') && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Línea (Opcional)</label>
+                    <select
+                      value={activeWindow.line || ''}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                        const newLine = e.target.value;
+                        const maxDims = LINE_MAX_DIMENSIONS[newLine];
+                        const updates: Partial<WindowConfig> = { line: newLine };
+
+                        // Adjust dimensions if they exceed the new line's limits
+                        if (maxDims) {
+                          if (activeWindow.width > maxDims.maxWidth) {
+                            updates.width = maxDims.maxWidth;
+                          }
+                          if (activeWindow.height > maxDims.maxHeight) {
+                            updates.height = maxDims.maxHeight;
+                          }
+                        }
+
+                        updateActiveWindow(updates);
+                      }}
+                      className="w-full p-2 border rounded-md dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
+                    >
+                      <option value="">Sin línea específica</option>
+                      {(() => {
+                        const renderOption = (code: string) => {
+                          const name = LINE_NAMES[code];
+                          const price = LINE_PRICES[code];
+                          return <option key={code} value={code}>{name} (+${price.toLocaleString('es-CL')})</option>;
+                        };
+
+                        return (
+                          <>
+                            {activeWindow.type === 'corredera' && (
+                              <>
+                                {renderOption('pvc_58cd')}
+                                {renderOption('pvc_70cd')}
+                                {renderOption('pvc_pd10')}
+                              </>
+                            )}
+                            {(activeWindow.type === 'abatible' || activeWindow.type === 'open_right' || activeWindow.type === 'open_left' || activeWindow.type === 'proyectante' || activeWindow.type === 'tilt_turn') && (
+                              <>
+                                {renderOption('pvc_58dj')}
+                                {renderOption('pvc_50dj')}
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </select>
+                  </div>
+                )}
+
                 {activeWindow.sashCount > 1 && (
                   <div className="mt-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100 shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
@@ -1939,17 +2065,21 @@ function ConfiguradorVentanaContent() {
                       className="w-full p-2 border rounded-md text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                     >
                       {glassConfig?.vidrios ? (
-                        Object.entries(glassConfig.vidrios).map(([key, val]: any) => (
-                          <option key={key} value={key}>
-                            {val.label} (+${val.price.toLocaleString('es-CL')}/m2)
-                          </option>
-                        ))
+                        Object.entries(glassConfig.vidrios)
+                          .filter(([key]) => isGlassCompatible(key))
+                          .map(([key, val]: any) => (
+                            <option key={key} value={key}>
+                              {val.label} (+${val.price.toLocaleString('es-CL')}/m2)
+                            </option>
+                          ))
                       ) : (
-                        VIDRIOS_FLAT.map(v => (
-                          <option key={v.value} value={v.value}>
-                            {v.label} (+${v.price.toLocaleString('es-CL')}/m2)
-                          </option>
-                        ))
+                        VIDRIOS_FLAT
+                          .filter(v => isGlassCompatible(v.value))
+                          .map(v => (
+                            <option key={v.value} value={v.value}>
+                              {v.label} (+${v.price.toLocaleString('es-CL')}/m2)
+                            </option>
+                          ))
                       )}
                     </select>
                   </div>

@@ -14,7 +14,7 @@ import {
 import { useSearchParams } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { ADMIN_EMAILS } from '@/lib/constants';
-import { getPautaAL25_Corredera2H, getPautaAL5000_Corredera2H, getPautaAL20_Corredera2H, getPautaAL42_Proyectante } from '@/lib/data/aluminio_perfiles';
+import { getPautaAL25_Corredera2H, getPautaAL5000_Corredera2H, getPautaAL20_Corredera2H, getPautaAL42_Proyectante, getPautaL12_ShowerDoor, getPautaS33_Corredera2H, getPautaS38_Proyectante, getPautaS38_Fijo, type PautaCorte } from '@/lib/data/aluminio_perfiles';
 
 const BASE_PRICE = 60000;
 
@@ -62,11 +62,15 @@ const LINE_PRICES: Record<string, number> = {
   'al_5000': 35000,
   'al_20': 55000,
   'al_25': 75000,
+  's33_rpt': 85000,
   // Abatible
   'al_32': 29000,
   'al_42': 40000,
+  's38_rpt': 60000,
   // Puerta
   'am_35': 45000,
+  // Shower
+  'l12_shower': 45000,
 };
 
 const LINE_NAMES: Record<string, string> = {
@@ -76,7 +80,21 @@ const LINE_NAMES: Record<string, string> = {
   'al_32': 'Línea AL 32',
   'al_42': 'Línea AL 42',
   'am_35': 'Línea AM-35',
+  'l12_shower': 'Línea L-12 Shower Door',
+  's33_rpt': 'Serie S-33 RPT',
+  's38_rpt': 'Serie S-38 RPT',
+};
 
+const LINE_MAX_DIMENSIONS: Record<string, { maxWidth: number; maxHeight: number }> = {
+  'al_5000': { maxWidth: 3000, maxHeight: 3000 },
+  'al_20': { maxWidth: 3000, maxHeight: 3000 },
+  'al_25': { maxWidth: 3000, maxHeight: 3000 },
+  'al_32': { maxWidth: 3000, maxHeight: 3000 },
+  'al_42': { maxWidth: 3000, maxHeight: 3000 },
+  'am_35': { maxWidth: 3000, maxHeight: 3000 },
+  'l12_shower': { maxWidth: 840, maxHeight: 1720 },
+  's33_rpt': { maxWidth: 3000, maxHeight: 3000 },
+  's38_rpt': { maxWidth: 3000, maxHeight: 3000 },
 };
 
 const ACCESSORY_PRICES: Record<string, number> = {
@@ -87,6 +105,7 @@ const ACCESSORY_PRICES: Record<string, number> = {
 };
 
 // Especificaciones de Validación de Vidrios
+// Especificaciones de Validación de Vidrios
 const LINE_SPECS: Record<string, { validThicknesses: number[]; allowTermopanel: boolean }> = {
   'al_5000': { validThicknesses: [3, 4], allowTermopanel: true },
   'al_20': { validThicknesses: [3, 4], allowTermopanel: true },
@@ -94,6 +113,9 @@ const LINE_SPECS: Record<string, { validThicknesses: number[]; allowTermopanel: 
   'al_32': { validThicknesses: [3, 4, 5], allowTermopanel: true },
   'al_42': { validThicknesses: [4, 5, 6], allowTermopanel: true }, // Permite Termopanel de 18mm
   'am_35': { validThicknesses: [5, 6, 8], allowTermopanel: true },
+  'l12_shower': { validThicknesses: [2, 3, 4, 5, 6], allowTermopanel: false }, // Ampliado por si acaso, pero filtrado por tipo abajo
+  's33_rpt': { validThicknesses: [18], allowTermopanel: true }, // Solo termopanel
+  's38_rpt': { validThicknesses: [4, 5, 6], allowTermopanel: true },
 };
 
 function getGlassThickness(glassCode: string): number {
@@ -106,6 +128,15 @@ function getGlassThickness(glassCode: string): number {
 }
 
 function isGlassCompatible(glassCode: string, line: string): boolean {
+  // REGLA ESTRICTA para L-12 Shower Door
+  if (line === 'l12_shower') {
+    // Solo permitir: Acrilicos (acr.*), Templado (tem.*), Laminado (lam.*)
+    if (glassCode.startsWith('acr.') || glassCode.startsWith('tem.') || glassCode.startsWith('lam.')) {
+      return true;
+    }
+    return false;
+  }
+
   const specs = LINE_SPECS[line];
   if (!specs) return true; // Si la línea no está en especificaciones, permitir todo (reserva)
 
@@ -120,6 +151,8 @@ function isGlassCompatible(glassCode: string, line: string): boolean {
 }
 
 function getStandardGlassForLine(line: string): string {
+  if (line === 'l12_shower') return 'acr.lluvia'; // Default para L-12
+
   const specs = LINE_SPECS[line];
   if (!specs) return 'inc.4';
 
@@ -497,6 +530,30 @@ function WindowPreview({
         <line x1={lx1 - tickSize} y1={ly1 - tickSize} x2={lx1 + tickSize} y2={ly1 + tickSize} stroke={lineColor} strokeWidth={2.5} />
         <line x1={lx2 - tickSize} y1={ly2 - tickSize} x2={lx2 + tickSize} y2={ly2 + tickSize} stroke={lineColor} strokeWidth={2.5} />
 
+        {/* Shadow for depth */}
+        <rect
+          x={mx + (vertical ? -textOffset : 0) - (text.length * textFontSize * 0.35) + 1}
+          y={my + (vertical ? 0 : textOffset / 2 + 2) - textFontSize * 0.65 + 1}
+          width={text.length * textFontSize * 0.7}
+          height={textFontSize * 1.4}
+          fill="#00000010"
+          rx="6"
+          transform={vertical ? `rotate(-90 ${mx - textOffset} ${my})` : undefined}
+        />
+
+        {/* Background box for text */}
+        <rect
+          x={mx + (vertical ? -textOffset : 0) - (text.length * textFontSize * 0.35)}
+          y={my + (vertical ? 0 : textOffset / 2 + 2) - textFontSize * 0.65}
+          width={text.length * textFontSize * 0.7}
+          height={textFontSize * 1.4}
+          fill="white"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          rx="6"
+          transform={vertical ? `rotate(-90 ${mx - textOffset} ${my})` : undefined}
+        />
+
         {/* Texto */}
         <text
           x={mx + (vertical ? -textOffset : 0)}
@@ -507,7 +564,7 @@ function WindowPreview({
           fontWeight="bold"
           fill="#1e293b"
           transform={vertical ? `rotate(-90 ${mx - textOffset} ${my})` : undefined}
-          style={{ cursor: onUpdate ? 'pointer' : 'default', userSelect: 'none' }}
+          style={{ cursor: onUpdate ? 'pointer' : 'default', userSelect: 'none', pointerEvents: onUpdate ? 'auto' : 'none' }}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             if (onUpdate) {
@@ -625,11 +682,9 @@ function WindowPreview({
     return <>{result}</>;
   };
 
-  const PADDING_BOTTOM = 100 * scale;
-
   return (
     <svg
-      viewBox={`${viewX} ${viewY} ${viewW} ${height + PADDING_BOTTOM}`}
+      viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
       xmlns="http://www.w3.org/2000/svg"
       className="w-full h-full rounded-sm bg-white"
       style={{ maxWidth: '100%', maxHeight: '100%', boxShadow: showShadow ? '0 12px 30px rgba(2,6,23,0.12)' : undefined }}
@@ -1038,10 +1093,17 @@ function ConfiguradorVentanaContent() {
     // Determine base price for the opening type OR the selected line
     const getSashPrice = (t: string) => {
       const cKey = typeMapping[t] || t;
+
+      // Check for dynamic Line Price from Admin Config
+      if (win.line && alumConfig?.lineas?.[win.line]) {
+        return alumConfig.lineas[win.line].price;
+      }
+
+      // Fallback to hardcoded LINE_PRICES if config missing but line selected
       if (win.line && LINE_PRICES[win.line]) {
-        // If line is selected, we use the line price, but handle multiplier if multiple sashes are operaable
         return LINE_PRICES[win.line];
       }
+
       return alumConfig?.aperturas?.[cKey]?.price ?? (OPENING_PRICES[t] || 0);
     };
 
@@ -1521,220 +1583,115 @@ function ConfiguradorVentanaContent() {
           pdf.setDrawColor(240, 240, 240);
           pdf.line(margin, currentY, pageWidth - margin, currentY);
 
-          // PAUTA DE CORTE (Detalle Técnico para AL-25)
-          if (win.line === 'al_25' && win.type === 'corredera' && win.sashCount === 1) { // 2 Hojas para lógica de UI sashCount=1
-            currentY += 5;
-            if (currentY + 50 > pageHeight - 20) {
-              pdf.addPage();
-              currentY = 20;
+          // ===== PAUTA DE CORTE UNIFICADA PARA TODAS LAS LÍNEAS =====
+          const line = win.line;
+          if (line) {
+            let pauta: PautaCorte | null = null;
+            let lineName = LINE_NAMES[line] || line.toUpperCase();
+
+            // Determinar qué función de pauta usar según línea y tipo
+            if (line === 'al_25' && win.type === 'corredera') {
+              pauta = getPautaAL25_Corredera2H(win.width, win.height);
+            } else if (line === 'al_5000' && win.type === 'corredera') {
+              pauta = getPautaAL5000_Corredera2H(win.width, win.height);
+            } else if (line === 'al_20' && win.type === 'corredera') {
+              pauta = getPautaAL20_Corredera2H(win.width, win.height);
+            } else if (line === 's33_rpt' && win.type === 'corredera') {
+              pauta = getPautaS33_Corredera2H(win.width, win.height);
+            } else if (line === 's38_rpt' && win.type === 'proyectante') {
+              pauta = getPautaS38_Proyectante(win.width, win.height);
+            } else if (line === 's38_rpt' && win.type === 'fixed') {
+              pauta = getPautaS38_Fijo(win.width, win.height);
+            } else if (line === 'al_42' && win.type === 'proyectante') {
+              pauta = getPautaAL42_Proyectante(win.width, win.height);
+            } else if (line === 'l12_shower') {
+              pauta = getPautaL12_ShowerDoor(win.width, win.height);
             }
 
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(10);
-            pdf.text("PAUTA DE CORTE - RESUMEN TÉCNICO AL-25 (2 HOJAS)", margin, currentY);
-            currentY += 5;
+            if (pauta) {
+              currentY += 5;
+              // Verificar espacio en página
+              if (currentY + 80 > pageHeight - 20) {
+                pdf.addPage();
+                currentY = 20;
+              }
 
-            pdf.setFontSize(8);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("Perfil", margin, currentY);
-            pdf.text("Capa", margin + 50, currentY);
-            pdf.text("Largo (mm)", margin + 70, currentY);
-            pdf.text("Fórmula", margin + 100, currentY);
-            currentY += 4;
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 4;
+              // Título de sección
+              pdf.setFont('helvetica', 'bold');
+              pdf.setFontSize(10);
+              pdf.text(`PAUTA DE CORTE - ${lineName}:`, margin, currentY);
+              currentY += 5;
 
-            pdf.setFont('helvetica', 'normal');
-            const pauta = getPautaAL25_Corredera2H(win.width, win.height);
+              // Tabla de perfiles
+              pdf.setFontSize(9);
+              pdf.setFont('helvetica', 'bold');
+              pdf.setTextColor(80, 80, 80);
+              pdf.text('Perfil', margin, currentY);
+              pdf.text('Cant', margin + 70, currentY);
+              pdf.text('Largo (mm)', margin + 90, currentY);
+              pdf.text('Fórmula', margin + 130, currentY);
+              currentY += 2;
 
-            pauta.perfiles.forEach(p => {
-              pdf.text(`${p.codigo} - ${p.nombre}`, margin, currentY);
-              pdf.text(`${p.cantidad}`, margin + 50, currentY);
-              pdf.text(`${Math.round(p.largo)}`, margin + 70, currentY);
-              pdf.text(p.formula, margin + 100, currentY);
+              // Línea separadora
+              pdf.setDrawColor(200, 200, 200);
+              pdf.line(margin, currentY, pageWidth - margin, currentY);
+              currentY += 5;
+
+              // Datos de perfiles  
+              pdf.setFont('helvetica', 'normal');
+              pdf.setTextColor(0, 0, 0);
+              pauta.perfiles.forEach(perfil => {
+                // Código en azul
+                pdf.setTextColor(30, 64, 175); // Blue-700
+                pdf.text(perfil.codigo, margin, currentY);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(` - ${perfil.nombre}`, margin + 12, currentY);
+                pdf.text(perfil.cantidad.toString(), margin + 70, currentY);
+                pdf.text(Math.round(perfil.largo).toString(), margin + 90, currentY);
+                pdf.text(perfil.formula, margin + 130, currentY);
+                currentY += 4.5;
+              });
+
+              currentY += 2;
+
+              // Vidrios/Paneles
+              pdf.setFont('helvetica', 'bold');
+              pdf.text('VIDRIOS / PANELES:', margin, currentY);
+              pdf.setFont('helvetica', 'normal');
+              const tipoVidrio = line === 'l12_shower' ? 'ACRÍLICO' : 'VIDRIOS';
+              pdf.text(
+                `${pauta.vidrios.cantidad} unidades: ${Math.round(pauta.vidrios.ancho)} x ${Math.round(pauta.vidrios.alto)} mm`,
+                margin + 50,
+                currentY
+              );
+              currentY += 6;
+
+              // Quincallería/Accesorios
+              pdf.setFont('helvetica', 'bold');
+              pdf.text('QUINCALLERÍA / ACCESORIOS:', margin, currentY);
+              currentY += 4.5;
+
+              pdf.setFont('helvetica', 'normal');
+              pdf.setFontSize(8);
+              pauta.quincalleria.forEach(item => {
+                // Formato cantidad con decimales si es necesario
+                const qty = typeof item.cantidad === 'number' && item.cantidad % 1 !== 0
+                  ? item.cantidad.toFixed(2)
+                  : Math.round(item.cantidad).toString();
+                pdf.text(`- ${item.nombre}: ${qty} ${item.unidad}`, margin + 3, currentY);
+                currentY += 3.5;
+              });
+
+              currentY += 3;
+
+              // Línea separadora final
+              pdf.setDrawColor(220, 220, 220);
+              pdf.line(margin, currentY, pageWidth - margin, currentY);
               currentY += 4;
-            });
 
-            currentY += 2;
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("VIDRIOS:", margin, currentY);
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(`${pauta.vidrios.cantidad} unidades: ${Math.round(pauta.vidrios.ancho)} x ${Math.round(pauta.vidrios.alto)} mm`, margin + 20, currentY);
-            currentY += 4;
-
-            pdf.setDrawColor(240, 240, 240);
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 4;
-
-            const pesoTeorico = (2.57 * (win.width / 1000)) + (3.27 * (win.height / 1000));
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("PESO TEÓRICO:", margin, currentY);
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(`${pesoTeorico.toFixed(2)} Kg`, margin + 30, currentY);
-            currentY += 4;
-
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-          }
-
-
-          // PAUTA DE CORTE (Detalle Técnico para AL-5000)
-          if (win.line === 'al_5000' && win.type === 'corredera' && win.sashCount === 1) {
-            currentY += 5;
-            if (currentY + 50 > pageHeight - 20) {
-              pdf.addPage();
-              currentY = 20;
+              pdf.setFontSize(9);
             }
-
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(10);
-            pdf.text("PAUTA DE CORTE - RESUMEN TÉCNICO AL-5000 (2 HOJAS)", margin, currentY);
-            currentY += 5;
-
-            pdf.setFontSize(8);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("Perfil", margin, currentY);
-            pdf.text("Capa", margin + 50, currentY);
-            pdf.text("Largo (mm)", margin + 70, currentY);
-            pdf.text("Fórmula", margin + 100, currentY);
-            currentY += 4;
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 4;
-
-            pdf.setFont('helvetica', 'normal');
-            const pauta = getPautaAL5000_Corredera2H(win.width, win.height);
-
-            pauta.perfiles.forEach(p => {
-              pdf.text(`${p.codigo} - ${p.nombre}`, margin, currentY);
-              pdf.text(`${p.cantidad.toString()}`, margin + 50, currentY);
-              pdf.text(`${Math.round(p.largo)}`, margin + 70, currentY);
-              pdf.text(p.formula, margin + 100, currentY);
-              currentY += 4;
-            });
-
-            currentY += 2;
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("VIDRIOS:", margin, currentY);
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(`${pauta.vidrios.cantidad} unidades: ${Math.round(pauta.vidrios.ancho)} x ${Math.round(pauta.vidrios.alto)} mm`, margin + 20, currentY);
-            currentY += 4;
-
-            pdf.setDrawColor(240, 240, 240);
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 4;
-
-            //  const pesoTeorico = (2.57 * (win.width / 1000)) + (3.27 * (win.height / 1000));
-            //  pdf.setFont('helvetica', 'bold');
-            //  pdf.text("PESO TEÓRICO:", margin, currentY);
-            //  pdf.setFont('helvetica', 'normal');
-            //  pdf.text(`${pesoTeorico.toFixed(2)} Kg (Estimado)`, margin + 30, currentY);
-            currentY += 4;
-
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
           }
-
-
-          // PAUTA DE CORTE (Detalle Técnico para AL-20)
-          if (win.line === 'al_20' && win.type === 'corredera' && win.sashCount === 1) {
-            currentY += 5;
-            if (currentY + 50 > pageHeight - 20) {
-              pdf.addPage();
-              currentY = 20;
-            }
-
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(10);
-            pdf.text("PAUTA DE CORTE - RESUMEN TÉCNICO AL-20 (2 HOJAS)", margin, currentY);
-            currentY += 5;
-
-            pdf.setFontSize(8);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("Perfil", margin, currentY);
-            pdf.text("Capa", margin + 50, currentY);
-            pdf.text("Largo (mm)", margin + 70, currentY);
-            pdf.text("Fórmula", margin + 100, currentY);
-            currentY += 4;
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 4;
-
-            pdf.setFont('helvetica', 'normal');
-            const pauta = getPautaAL20_Corredera2H(win.width, win.height);
-
-            pauta.perfiles.forEach(p => {
-              pdf.text(`${p.codigo} - ${p.nombre}`, margin, currentY);
-              pdf.text(`${p.cantidad.toString()}`, margin + 50, currentY);
-              pdf.text(`${Math.round(p.largo)}`, margin + 70, currentY);
-              pdf.text(p.formula, margin + 100, currentY);
-              currentY += 4;
-            });
-
-            currentY += 2;
-            pdf.setFont('helvetica', 'bold');
-            pdf.text("VIDRIOS:", margin, currentY);
-            pdf.setFont('helvetica', 'normal');
-            pdf.text(`${pauta.vidrios.cantidad} unidades: ${Math.round(pauta.vidrios.ancho)} x ${Math.round(pauta.vidrios.alto)} mm`, margin + 20, currentY);
-            currentY += 4;
-
-            pdf.setDrawColor(240, 240, 240);
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 4;
-
-            pdf.line(margin, currentY, pageWidth - margin, currentY);
-          }
-        }
-
-        // --- PAUTA DE CORTE: AL-42 (Proyectante) ---
-        if (win.line === 'al_42' && win.type === 'proyectante') {
-          const pauta = getPautaAL42_Proyectante(win.width, win.height);
-
-          // Título
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(10);
-          currentY += 5;
-          pdf.text("PAUTA DE CORTE (AL-42 Proyectante):", margin, currentY);
-          currentY += 5;
-
-          // Encabezado de Tabla de Perfiles
-          pdf.setFontSize(8);
-          pdf.setTextColor(100);
-          pdf.text("PERFIL", margin, currentY);
-          pdf.text("CANT", margin + 60, currentY);
-          pdf.text("LARGO (mm)", margin + 80, currentY);
-          pdf.text("FORMULA", margin + 110, currentY);
-          currentY += 4;
-          pdf.setTextColor(0);
-          pdf.setFont('helvetica', 'normal');
-
-          // Lista de Perfiles
-          pauta.perfiles.forEach(p => {
-            pdf.text(`${p.codigo} - ${p.nombre}`, margin, currentY);
-            pdf.text(`${p.cantidad}`, margin + 60, currentY);
-            pdf.text(Math.round(p.largo).toString(), margin + 80, currentY);
-            if (p.formula) pdf.text(p.formula, margin + 110, currentY);
-            currentY += 4;
-          });
-          currentY += 2;
-
-          // Lista de Quincalleria
-          pdf.setFont('helvetica', 'bold');
-          pdf.text("QUINCALLERÍA:", margin, currentY);
-          currentY += 4;
-          pdf.setFont('helvetica', 'normal');
-          pauta.quincalleria.forEach(q => {
-            pdf.text(`- ${q.nombre}: ${Math.round(q.cantidad * 100) / 100} ${q.unidad}`, margin + 5, currentY);
-            currentY += 4;
-          });
-          currentY += 2;
-
-          // Vidrio
-          pdf.setFont('helvetica', 'bold');
-          pdf.text("VIDRIOS:", margin, currentY);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`${pauta.vidrios.cantidad} unidades: ${Math.round(pauta.vidrios.ancho)} x ${Math.round(pauta.vidrios.alto)} mm`, margin + 20, currentY);
-          currentY += 4;
-
-          pdf.setDrawColor(240, 240, 240);
-          pdf.line(margin, currentY, pageWidth - margin, currentY);
-          currentY += 4;
 
           pdf.line(margin, currentY, pageWidth - margin, currentY);
         }
@@ -1968,25 +1925,25 @@ function ConfiguradorVentanaContent() {
                         {globalAdjustment > 0 ? '+' : ''}{globalAdjustment}%
                       </span>
                     </div>
-                    <div className="flex items-center gap-4">
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="-50"
+                      max="100"
+                      step="1"
+                      value={globalAdjustment}
+                      onChange={(e) => setGlobalAdjustment(Number(e.target.value))}
+                      className="flex-1 accent-blue-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex items-center gap-1">
                       <input
-                        type="range"
-                        min="-50"
-                        max="100"
-                        step="1"
+                        type="number"
                         value={globalAdjustment}
                         onChange={(e) => setGlobalAdjustment(Number(e.target.value))}
-                        className="flex-1 accent-blue-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-16 p-1 text-sm border border-slate-300 rounded text-center font-bold"
                       />
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          value={globalAdjustment}
-                          onChange={(e) => setGlobalAdjustment(Number(e.target.value))}
-                          className="w-16 p-1 text-sm border border-slate-300 rounded text-center font-bold"
-                        />
-                        <span className="text-sm text-slate-500">%</span>
-                      </div>
+                      <span className="text-sm text-slate-500">%</span>
                     </div>
                   </div>
                 </div>
@@ -2060,23 +2017,33 @@ function ConfiguradorVentanaContent() {
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Dimensiones (mm)</label>
                   <div className="space-y-2">
                     <div>
-                      <label className="text-xs text-slate-500 block mb-1">Ancho</label>
+                      <label className="text-xs text-slate-500 block mb-1">Ancho {activeWindow.line && LINE_MAX_DIMENSIONS[activeWindow.line] && <span className="text-blue-600">(Máx: {LINE_MAX_DIMENSIONS[activeWindow.line].maxWidth}mm)</span>}</label>
                       <input
                         type="number"
                         value={activeWindow.width}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateActiveWindow({ width: Math.max(320, Number(e.target.value) || 320) })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const maxWidth = activeWindow.line && LINE_MAX_DIMENSIONS[activeWindow.line] ? LINE_MAX_DIMENSIONS[activeWindow.line].maxWidth : 3000;
+                          const newWidth = Math.max(320, Math.min(maxWidth, Number(e.target.value) || 320));
+                          updateActiveWindow({ width: newWidth });
+                        }}
                         className="w-full p-2 border rounded-md dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                         min="320"
+                        max={activeWindow.line && LINE_MAX_DIMENSIONS[activeWindow.line] ? LINE_MAX_DIMENSIONS[activeWindow.line].maxWidth : 3000}
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500 block mb-1">Alto</label>
+                      <label className="text-xs text-slate-500 block mb-1">Alto {activeWindow.line && LINE_MAX_DIMENSIONS[activeWindow.line] && <span className="text-blue-600">(Máx: {LINE_MAX_DIMENSIONS[activeWindow.line].maxHeight}mm)</span>}</label>
                       <input
                         type="number"
                         value={activeWindow.height}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateActiveWindow({ height: Math.max(240, Number(e.target.value) || 240) })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const maxHeight = activeWindow.line && LINE_MAX_DIMENSIONS[activeWindow.line] ? LINE_MAX_DIMENSIONS[activeWindow.line].maxHeight : 3000;
+                          const newHeight = Math.max(240, Math.min(maxHeight, Number(e.target.value) || 240));
+                          updateActiveWindow({ height: newHeight });
+                        }}
                         className="w-full p-2 border rounded-md dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                         min="240"
+                        max={activeWindow.line && LINE_MAX_DIMENSIONS[activeWindow.line] ? LINE_MAX_DIMENSIONS[activeWindow.line].maxHeight : 3000}
                       />
                     </div>
                   </div>
@@ -2366,27 +2333,60 @@ function ConfiguradorVentanaContent() {
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Línea (Opcional)</label>
                     <select
                       value={activeWindow.line || ''}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateActiveWindow({ line: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                        const newLine = e.target.value;
+                        const maxDims = LINE_MAX_DIMENSIONS[newLine];
+                        const updates: Partial<WindowConfig> = { line: newLine };
+
+                        // Adjust dimensions if they exceed the new line's limits
+                        if (maxDims) {
+                          if (activeWindow.width > maxDims.maxWidth) {
+                            updates.width = maxDims.maxWidth;
+                          }
+                          if (activeWindow.height > maxDims.maxHeight) {
+                            updates.height = maxDims.maxHeight;
+                          }
+                        }
+
+                        updateActiveWindow(updates);
+                      }}
                       className="w-full p-2 border rounded-md"
                     >
-                      {activeWindow.type === 'corredera' && (
-                        <>
-                          <option value="al_5000">Línea AL 5000 (+$35.000)</option>
-                          <option value="al_20">Línea AL 20 (+$55.000)</option>
-                          <option value="al_25">Línea AL 25 (+$75.000)</option>
-                        </>
-                      )}
-                      {(activeWindow.type === 'abatible' || activeWindow.type === 'open_right' || activeWindow.type === 'open_left' || activeWindow.type === 'proyectante' || activeWindow.type === 'fixed') && (
-                        <>
-                          <option value="al_32">Línea AL 32 (+$29.000)</option>
-                          <option value="al_42">Línea AL 42 (+$40.000)</option>
-                        </>
-                      )}
-                      {(activeWindow.type.includes('door')) && (
-                        <>
-                          <option value="am_35">Línea AM-35 (+$45.000)</option>
-                        </>
-                      )}
+                      {/* Helper to render option with dynamic price */}
+                      {(() => {
+                        const renderOption = (code: string, defaultName: string, defaultPrice: number) => {
+                          const conf = alumConfig?.lineas?.[code];
+                          const name = conf?.label ?? defaultName;
+                          const price = conf?.price ?? defaultPrice;
+                          return <option key={code} value={code}>{name} (+${price.toLocaleString('es-CL')})</option>;
+                        };
+
+                        return (
+                          <>
+                            {activeWindow.type === 'corredera' && (
+                              <>
+                                {renderOption('al_5000', 'Línea AL 5000', 35000)}
+                                {renderOption('al_20', 'Línea AL 20', 55000)}
+                                {renderOption('al_25', 'Línea AL 25', 75000)}
+                                {renderOption('s33_rpt', 'Serie S-33 RPT', 85000)}
+                                {renderOption('l12_shower', 'Línea L-12 Shower Door', 45000)}
+                              </>
+                            )}
+                            {(activeWindow.type === 'abatible' || activeWindow.type === 'open_right' || activeWindow.type === 'open_left' || activeWindow.type === 'proyectante' || activeWindow.type === 'fixed') && (
+                              <>
+                                {renderOption('al_32', 'Línea AL 32', 29000)}
+                                {renderOption('al_42', 'Línea AL 42', 40000)}
+                                {renderOption('s38_rpt', 'Serie S-38 RPT', 60000)}
+                              </>
+                            )}
+                            {(activeWindow.type.includes('door')) && (
+                              <>
+                                {renderOption('am_35', 'Línea AM-35', 45000)}
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
                     </select>
                   </div>
                 )}
@@ -2433,23 +2433,33 @@ function ConfiguradorVentanaContent() {
                       {isGlassCompatible('doble', activeWindow.line || 'al_42') && <option value="doble">DVH (Termopanel) 18mm (Estándar)</option>}
 
                       <optgroup label="Más Opciones">
-                        {glassConfig?.vidrios ? (
-                          Object.entries(glassConfig.vidrios)
-                            .filter(([key]) => isGlassCompatible(key, activeWindow.line || 'al_42') && key !== getStandardGlassForLine(activeWindow.line || 'al_42') && key !== 'doble')
-                            .map(([key, val]: any) => (
-                              <option key={key} value={key}>
-                                {val.label} (+${val.price.toLocaleString('es-CL')}/m2)
-                              </option>
-                            ))
-                        ) : (
-                          VIDRIOS_FLAT
-                            .filter(v => isGlassCompatible(v.value, activeWindow.line || 'al_42') && v.value !== getStandardGlassForLine(activeWindow.line || 'al_42') && v.value !== 'doble')
-                            .map(v => (
+                        {(() => {
+                          const currentLine = activeWindow.line || 'al_42';
+                          const stdCode = getStandardGlassForLine(currentLine);
+
+                          // Base options from Config or Flat
+                          let options = glassConfig?.vidrios
+                            ? Object.entries(glassConfig.vidrios).map(([k, v]: any) => ({ value: k, label: v.label, price: v.price }))
+                            : VIDRIOS_FLAT;
+
+                          // MERGE: Ensure specific missing essential types (like new Acrylics) are present if they are in VIDRIOS_FLAT but not in Config
+                          // This fixes the issue where old DB configs hide new hardcoded features like L-12 Acrylics
+                          if (glassConfig?.vidrios) {
+                            const missingEssentials = VIDRIOS_FLAT.filter(vf =>
+                              (vf.value.startsWith('acr.') || vf.value.startsWith('tem.') || vf.value.startsWith('lam.')) &&
+                              !options.find(o => o.value === vf.value)
+                            );
+                            options = [...options, ...missingEssentials];
+                          }
+
+                          return options
+                            .filter(v => isGlassCompatible(v.value, currentLine) && v.value !== stdCode && v.value !== 'doble')
+                            .map((v) => (
                               <option key={v.value} value={v.value}>
                                 {v.label} (+${v.price.toLocaleString('es-CL')}/m2)
                               </option>
-                            ))
-                        )}
+                            ));
+                        })()}
                       </optgroup>
                     </select>
                   </div>

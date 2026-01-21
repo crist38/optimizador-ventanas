@@ -31,6 +31,7 @@ type ConfigDoc = {
     manillas: PriceMap;
     vidrios: PriceMap;
     accesorios: PriceMap;
+    lineas: PriceMap; // New category
 };
 
 // --- CONFIGURACIÓN POR DEFECTO: ALUMINIO ---
@@ -61,6 +62,24 @@ const DEFAULT_ALUMINIO: ConfigDoc = {
         simple: { label: 'Vidrio Simple', price: 10000 },
         doble: { label: 'Doble Vidrio (DVH)', price: 29000 },
         triple: { label: 'Triple Vidrio', price: 40000 },
+        // Acrylics
+        'acr.lluvia': { label: 'Acrílico Lluvia', price: 15600 },
+        'acr.burbujas': { label: 'Acrílico Burbujas', price: 15600 },
+        'acr.arabesco': { label: 'Acrílico Arabesco', price: 15900 },
+        'acr.amazonas': { label: 'Acrílico Amazonas', price: 15600 },
+        'acr.gaviotas': { label: 'Acrílico Gaviotas', price: 15600 },
+        'acr.15900': { label: 'Acrílico Diseño 15900', price: 15900 },
+    },
+    lineas: {
+        'al_5000': { label: 'Línea AL 5000', price: 35000 },
+        'al_20': { label: 'Línea AL 20', price: 55000 },
+        'al_25': { label: 'Línea AL 25', price: 75000 },
+        's33_rpt': { label: 'Serie S-33 RPT', price: 85000 },
+        'al_32': { label: 'Línea AL 32', price: 29000 },
+        'al_42': { label: 'Línea AL 42', price: 40000 },
+        's38_rpt': { label: 'Serie S-38 RPT', price: 60000 },
+        'am_35': { label: 'Línea AM-35', price: 45000 },
+        'l12_shower': { label: 'Línea L-12 Shower Door', price: 45000 },
     },
     accesorios: {
         Palillos: { label: 'Palillaje', price: 3000 },
@@ -106,6 +125,13 @@ const DEFAULT_PVC: ConfigDoc = {
         zocalo: { label: 'Zócalo', price: 14000 },
         cremona: { label: 'Cremona', price: 19000 },
     },
+    lineas: {
+        'pvc_58cd': { label: 'PVC 58 CD', price: 0 },
+        'pvc_70cd': { label: 'PVC 70 CD', price: 15000 },
+        'pvc_58dj': { label: 'PVC 58 DJ', price: 10000 },
+        'pvc_50dj': { label: 'PVC 50 DJ', price: 8000 },
+        'pvc_pd10': { label: 'PVC PD-10', price: 12000 },
+    },
 };
 
 import { VIDRIOS_FLAT } from '@/lib/data/vidrios';
@@ -119,6 +145,7 @@ const DEFAULT_VIDRIOS_DOC: ConfigDoc = {
         return acc;
     }, {} as PriceMap),
     accesorios: {},
+    lineas: {},
 };
 
 function smartMerge(defaultMap: PriceMap, dbMap: any) {
@@ -181,6 +208,7 @@ export default function AdminEditarValores() {
                 manillas: smartMerge(defaults.manillas, data.manillas),
                 vidrios: smartMerge(defaults.vidrios, data.vidrios),
                 accesorios: smartMerge(defaults.accesorios, data.accesorios),
+                lineas: smartMerge(defaults.lineas, data.lineas),
             };
 
             setConfig(mergedConfig);
@@ -430,7 +458,7 @@ export default function AdminEditarValores() {
             </main >
         );
 
-    const categories: (keyof ConfigDoc)[] = ['aperturas', 'colores', 'manillas', 'vidrios', 'accesorios'];
+    const categories: (keyof ConfigDoc)[] = ['lineas', 'aperturas', 'colores', 'manillas', 'vidrios', 'accesorios'];
 
     return (
         <main className="p-6 bg-gray-50 min-h-screen">
@@ -463,6 +491,10 @@ export default function AdminEditarValores() {
 
                     <a href="/aluminio" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-center">
                         Ventanas Aluminio
+                    </a>
+
+                    <a href="/admin/materiales" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-center">
+                        Materiales
                     </a>
 
                     <a href="/presupuestos" className="bg-[#380ef5] hover:bg-[#2a0ab5] text-white px-4 py-2 rounded text-center">

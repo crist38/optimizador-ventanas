@@ -54,8 +54,14 @@ export const PRECIOS_VIDRIOS: Vidrio[] = [
     // Emp. (Empavonado?)
     { tipo: "Empavonado", codigo: "Emp.4", espesor: 4, precio: 26950 },
     { tipo: "Empavonado", codigo: "Emp.5", espesor: 5, precio: 32450 },
-];
 
+    // Acrílicos L-12
+    { tipo: "Acrílico Lluvia", codigo: "acr.lluvia", espesor: 3, precio: 15600 },
+    { tipo: "Acrílico Burbujas", codigo: "acr.burbujas", espesor: 3, precio: 15600 },
+    { tipo: "Acrílico Arabesco", codigo: "acr.arabesco", espesor: 3, precio: 15900 },
+    { tipo: "Acrílico Amazonas", codigo: "acr.amazonas", espesor: 3, precio: 15600 },
+    { tipo: "Acrílico Gaviotas", codigo: "acr.gaviotas", espesor: 3, precio: 15600 },
+];
 // Helper to get unique types
 export const TIPOS_UNICOS = Array.from(new Set(PRECIOS_VIDRIOS.map(v => v.tipo)));
 

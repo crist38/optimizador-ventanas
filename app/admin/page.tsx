@@ -21,7 +21,8 @@ import {
     DollarSign,
     Square as WindowIcon,
     Shield,
-    Trash2
+    Trash2,
+    Archive
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -238,6 +239,7 @@ export default function AdminDashboard() {
                 <nav className="flex-1 px-4 space-y-2">
                     <SidebarLink icon={<LayoutDashboard size={20} />} label="Dashboard" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
                     <SidebarLink icon={<Settings size={20} />} label="Configuración Precios" onClick={() => window.location.href = '/admin/config'} />
+                    <SidebarLink icon={<Archive size={20} />} label="Inventario Materiales" onClick={() => window.location.href = '/admin/materiales'} />
                     <SidebarLink icon={<ClipboardList size={20} />} label="Presupuestos" onClick={() => window.location.href = '/presupuestos'} />
                     <SidebarLink icon={<Users size={20} />} label="Usuarios" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
                 </nav>
@@ -416,6 +418,13 @@ export default function AdminDashboard() {
                                             description="Actualizar valores de perfiles y cristales."
                                             link="/admin/config"
                                             color="border-slate-200 bg-slate-100 text-slate-600"
+                                        />
+                                        <ShortcutCard
+                                            icon={<Archive size={22} />}
+                                            title="Gestión de Materiales"
+                                            description="Administrar inventario de insumos."
+                                            link="/admin/materiales"
+                                            color="border-purple-200 bg-purple-50 text-purple-600"
                                         />
                                     </div>
 
