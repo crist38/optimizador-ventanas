@@ -14,9 +14,15 @@ Permite diseñar y presupuestar ventanas de PVC de forma interactiva con soporte
 - **Calculadora Inteligente**: Ajuste de precios base según la línea seleccionada y configuración de vidrios.
 
 ### 2. 🏗️ Configurador de Ventanas de Aluminio
-Herramienta similar enfocada en perfiles de aluminio para diversas aplicaciones incluyendo líneas S-33 RPT y S-38 RPT.
-- Configuración de medidas y acabados.
-- Desglose de materiales y pautas de corte detalladas en PDF.
+Herramienta similar enfocada en perfiles de aluminio para diversas aplicaciones.
+- **Líneas Soportadas**:
+  - **Tradicionales**: AL 25, AL 42, AL 20, AL 32, AL 5000.
+  - **Puertas**: AM-35.
+  - **Especiales**: L-12 Shower Door.
+  - **RPT (Ruptura Puente Térmico)**: S-33 RPT, S-38 RPT.
+- **Funcionalidades**:
+  - Configuración de medidas y acabados.
+  - Desglose de materiales y pautas de corte detalladas en PDF.
 
 ### 3. 📦 Gestión de Materiales (Nuevo)
 Panel dedicado (`/admin/materiales`) para la administración de inventario.
